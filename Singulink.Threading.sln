@@ -1,15 +1,11 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
-# Visual Studio Version 16
-VisualStudioVersion = 16.0.30320.27
+# Visual Studio Version 17
+VisualStudioVersion = 17.14.36212.18 d17.14
 MinimumVisualStudioVersion = 15.0.26124.0
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Singulink.Threading.ReadWriteGuard", "Singulink.Threading.ReadWriteGuard\Singulink.Threading.ReadWriteGuard.csproj", "{BCB78906-7E1E-41D4-AE19-7A340DAD8526}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Singulink.Threading", "Source\Singulink.Threading\Singulink.Threading.csproj", "{BCB78906-7E1E-41D4-AE19-7A340DAD8526}"
 EndProject
-Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution Items", "{6E3ABF80-626A-4F4F-A0A6-41F3086F03AD}"
-	ProjectSection(SolutionItems) = preProject
-		.editorconfig = .editorconfig
-		Directory.Build.props = Directory.Build.props
-	EndProjectSection
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Source", "Source", "{02EA681E-C7D8-13C7-8484-4AC65E1B71E8}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -36,6 +32,9 @@ Global
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(NestedProjects) = preSolution
+		{BCB78906-7E1E-41D4-AE19-7A340DAD8526} = {02EA681E-C7D8-13C7-8484-4AC65E1B71E8}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {883CC7E0-9F91-4FDE-93B3-81E6D194AB55}

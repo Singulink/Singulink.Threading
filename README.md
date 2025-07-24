@@ -1,41 +1,117 @@
-# Singulink.Threading.ReadWriteGuard
+# Singulink.Threading
 
 [![Chat on Discord](https://img.shields.io/discord/906246067773923490)](https://discord.gg/EkQhJFsBu6)
-[![View nuget packages](https://img.shields.io/nuget/v/Singulink.Threading.ReadWriteGuard.svg)](https://www.nuget.org/packages/Singulink.Threading.ReadWriteGuard/)
-[![Build](https://github.com/Singulink/Singulink.Threading.ReadWriteGuard/workflows/build/badge.svg)](https://github.com/Singulink/Singulink.Threading.ReadWriteGuard/actions?query=workflow%3A%22build%22)
+[![View nuget packages](https://img.shields.io/nuget/v/Singulink.Threading.svg)](https://www.nuget.org/packages/Singulink.Threading/)
+[![Build](https://github.com/Singulink/Singulink.Threading/workflows/build%20and%20test/badge.svg)](https://github.com/Singulink/Singulink.Threading/actions?query=workflow%3A%22build+and+test%22)
 
-**Singulink.Threading.ReadWriteGuard** provides disposable guards for `ReaderWriterLockSlim` that simplify entering and reliably exiting locks by allowing you to use the `using` statement.
+**Singulink.Threading** is a small utility library for assisting with multithreading-related tasks. It has a key-based asynchronous-capable locking mechanism, common interlocked spin operation helpers, read/write lock extensions and an interlocked boolean flag implementation.
 
 ### About Singulink
 
-We are a small team of engineers and designers dedicated to building beautiful, functional and well-engineered software solutions. We offer very competitive rates as well as fixed-price contracts and welcome inquiries to discuss any custom development / project support needs you may have.
+We are a small team of engineers and designers dedicated to building beautiful, functional, and well-engineered software solutions. We offer very competitive rates as well as fixed-price contracts and welcome inquiries to discuss any custom development / project support needs you may have.
 
 This package is part of our **Singulink Libraries** collection. Visit https://github.com/Singulink to see our full list of publicly available libraries and other open-source projects.
 
 ## Installation
 
-Simply install the `Singulink.Threading.ReadWriteGuard` package from NuGet into your project.
+The package is available on NuGet - simply install the `Singulink.Threading` package.
 
-**Supported Runtimes**: Anywhere .NET Standard 2.0+ is supported, including:
-- .NET Core 2.0+
-- .NET Framework 4.6.1+
-- Mono 5.4+
-- Xamarin.iOS 10.14+
-- Xamarin.Android 8.0+
+**Supported Runtimes**: .NET 8.0+
 
 ## API
+
+You can view the fully documented API on the [project documentation site](https://www.singulink.com/Docs/Singulink.Threading/api/Singulink.Threading.html).
+
+## Usage Examples
+
+### InterlockedFlag
+
+```c#
+public class ExecuteOnce
+{
+    private InterlockedFlag _executedFlag;
+
+    public bool DidExecute => _executedFlag.IsSet;
+
+    public void Execute()
+    {
+        if (_executedFlag.TrySet())
+        {
+            // Run code that should only execute once
+        }
+    }
+
+    public void AllowOneMoreRun()
+    {
+        _executedFlag.TryClear();
+    }
+}
+```
+
+### InterlockedSpin
+
+```c#
+const int MaxClients = 10;
+
+int _clientCount;
+
+void OnClientConnect()
+{
+    if (!InterlockedSpin.TryIncrementToMax(ref _clientCount, MaxClients))
+        RefuseConnection();
+}
+
+void OnClientDisconnect()
+{
+    Interlocked.Decrement(ref _clientCount);
+}
+```
+
+```c#
+int[] _items = [1, 2, 3];
+
+// Returns [1, 2, 3, 4] on the first call, [1, 2, 3, 4, 5] on the second call, etc.
+int[] AddNextItem()
+{
+    return InterlockedSpin.Exchange(ref _items, items => [..items, items[^1] + 1]);
+}
+```
+
+### KeyLocker
+
+```c#
+KeyLocker<string> _locker = new(StringComparer.IgnoreCase);
+
+void ProcessItem(string itemId)
+{
+    using (_locker.Lock(itemId))
+    {
+        // Safe to process the item here without concurrent access
+        DoProcessing(itemId);
+    }
+}
+
+async Task ProcessItemAsync(string itemId)
+{
+    using (await _locker.LockAsync(itemId))
+    {
+        // Safe to process the item here without concurrent access
+        DoProcessing(itemId);
+    }
+}
+```
+
+### ReaderWriterLockSlimExtensions
 
 When you import the `Singulink.Threading` namespace, 3 new extension methods appear on `ReaderWriterLockSlim` instances:
 - `EnterReadGuard()`
 - `EnterWriteGuard()`
 - `EnterUpgradeableReadGuard()`
 
-You can view the API on [FuGet](https://www.fuget.org/packages/Singulink.Threading.ReadWriteGuard).
-
-## Usage Examples
-
 ```c#
-var lock = new ReaderWriterLockSlim();
+using Singulink.Threading;
+
+ReaderWriterLockSlim lock = new();
 
 // Locks are acquired inside the using blocks and released at the end:
 

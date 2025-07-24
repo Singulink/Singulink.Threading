@@ -1,0 +1,9 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFrameworks>net8.0</TargetFrameworks>
+
+    <Version>2.0.0</Version>
+    <PackageTags>Interlocked, Concurrent, Spin, Async, Key, Lock</PackageTags>
+    <Description>Small utility library for assisting with multithreading-related tasks.</Description>
+  </PropertyGroup>
+</Project>

@@ -1,0 +1,6 @@
+- name: Home
+  href: index.md
+- name: API Documentation
+  href: api/
+- name: GitHub Repository
+  href: https://github.com/Singulink/Singulink.Threading/
