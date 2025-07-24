@@ -4,7 +4,7 @@
 [![View nuget packages](https://img.shields.io/nuget/v/Singulink.Threading.svg)](https://www.nuget.org/packages/Singulink.Threading/)
 [![Build](https://github.com/Singulink/Singulink.Threading/workflows/build/badge.svg)](https://github.com/Singulink/Singulink.Threading/actions?query=workflow%3A%22build%22)
 
-**Singulink.Threading** is a small utility library for assisting with multithreading-related tasks. It has a key-based asynchronous-capable locking mechanism, common interlocked spin operation helpers, read/write lock extensions and an interlocked boolean flag implementation.
+**Singulink.Threading** is a small utility library used to support other Singulink projects with some common multi-threading related functionality. It has a key-based asynchronous-capable locking mechanism, common interlocked spin operation helpers, reader/writer lock extensions and an interlocked flag implementation.
 
 ### About Singulink
 
@@ -22,7 +22,9 @@ The package is available on NuGet - simply install the `Singulink.Threading` pac
 
 You can view the fully documented API on the [project documentation site](https://www.singulink.com/Docs/Singulink.Threading/api/Singulink.Threading.html).
 
-## Usage Examples
+## Usage
+
+This library makes use of mutable structs as a low-level performance optimization. These structs have been annotated with a `[NonCopyable]` attribute to allow a non-copyable struct analyzer to detect misuse. When using this library, it is recommend that either [NonCopyableAnalyzer](https://github.com/ufcpp/NonCopyableAnalyzer) or [Roslyn.Diagnostics.Analyzers](https://www.nuget.org/packages/Roslyn.Diagnostics.Analyzers/) is added to the project to warn on potentially unintended copying of these structs.
 
 ### InterlockedFlag
 
