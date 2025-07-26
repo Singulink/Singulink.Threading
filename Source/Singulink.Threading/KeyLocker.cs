@@ -51,7 +51,9 @@ public class KeyLocker<T> where T : notnull
             static _ => new Entry(new SemaphoreSlim(1, 1), 1),
             static (_, entry) => entry with { RefCount = entry.RefCount + 1 });
 
-        entry.Semaphore.Wait(millisecondsTimeout, cancellationToken);
+        if (!entry.Semaphore.Wait(millisecondsTimeout, cancellationToken))
+            throw new TimeoutException("Failed to acquire lock within the specified timeout.");
+
         return new(key, this);
     }
 
@@ -77,7 +79,9 @@ public class KeyLocker<T> where T : notnull
             static _ => new Entry(new SemaphoreSlim(1, 1), 1),
             static (_, entry) => entry with { RefCount = entry.RefCount + 1 });
 
-        await entry.Semaphore.WaitAsync(millisecondsTimeout, cancellationToken).ConfigureAwait(false);
+        if (!await entry.Semaphore.WaitAsync(millisecondsTimeout, cancellationToken).ConfigureAwait(false))
+            throw new TimeoutException("Failed to acquire lock within the specified timeout.");
+
         return new(key, this);
     }
 
