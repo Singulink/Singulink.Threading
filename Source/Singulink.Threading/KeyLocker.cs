@@ -45,6 +45,7 @@ public class KeyLocker<T> where T : notnull
     /// <param name="millisecondsTimeout">The number of milliseconds to wait, or <see cref="Timeout.Infinite"/>(-1) to wait indefinitely.</param>
     /// <param name="cancellationToken">Optional cancellation token.</param>
     /// <returns>The acquired lock.</returns>
+    /// <exception cref="TimeoutException">Lock could not be acquired within the specified timeout.</exception>
     public KeyLock<T> Lock(T key, int millisecondsTimeout, CancellationToken cancellationToken = default)
     {
         Entry entry = _lockEntryLookup.AddOrUpdate(key,
@@ -72,7 +73,8 @@ public class KeyLocker<T> where T : notnull
     /// <param name="key">The key to lock.</param>
     /// <param name="millisecondsTimeout">The number of milliseconds to wait, or <see cref="Timeout.Infinite"/>(-1) to wait indefinitely.</param>
     /// <param name="cancellationToken">Optional cancellation token.</param>
-    /// <returns>The acquired lock.</returns>
+    /// <returns>A task that contains the acquired lock when it completes.</returns>
+    /// <exception cref="TimeoutException">Lock could not be acquired within the specified timeout.</exception>
     public async ValueTask<KeyLock<T>> LockAsync(T key, int millisecondsTimeout, CancellationToken cancellationToken = default)
     {
         Entry entry = _lockEntryLookup.AddOrUpdate(key,
