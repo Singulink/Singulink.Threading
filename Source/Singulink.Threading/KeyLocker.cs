@@ -42,7 +42,7 @@ public class KeyLocker<T> where T : notnull
     /// Acquires a lock for the specified key. If the lock is already held, it will wait until it can acquire the lock or the specified timeout expires.
     /// </summary>
     /// <param name="key">The key to lock.</param>
-    /// <param name="millisecondsTimeout">The number of milliseconds to wait, or <see cref="Timeout.Infinite"/>(-1) to wait indefinitely.</param>
+    /// <param name="millisecondsTimeout">The number of milliseconds to wait, or <see cref="Timeout.Infinite"/>(<c>-1</c>) to wait indefinitely.</param>
     /// <param name="cancellationToken">Optional cancellation token.</param>
     /// <returns>The acquired lock.</returns>
     /// <exception cref="TimeoutException">Lock could not be acquired within the specified timeout.</exception>
@@ -53,6 +53,26 @@ public class KeyLocker<T> where T : notnull
             static (_, entry) => entry with { RefCount = entry.RefCount + 1 });
 
         if (!entry.Semaphore.Wait(millisecondsTimeout, cancellationToken))
+            throw new TimeoutException("Failed to acquire lock within the specified timeout.");
+
+        return new(key, this);
+    }
+
+    /// <summary>
+    /// Acquires a lock for the specified key. If the lock is already held, it will wait until it can acquire the lock or the specified timeout expires.
+    /// </summary>
+    /// <param name="key">The key to lock.</param>
+    /// <param name="timeout">The amount of time to wait, or <see cref="Timeout.InfiniteTimeSpan"/> to wait indefinitely.</param>
+    /// <param name="cancellationToken">Optional cancellation token.</param>
+    /// <returns>The acquired lock.</returns>
+    /// <exception cref="TimeoutException">Lock could not be acquired within the specified timeout.</exception>
+    public KeyLock<T> Lock(T key, TimeSpan timeout, CancellationToken cancellationToken = default)
+    {
+        Entry entry = _lockEntryLookup.AddOrUpdate(key,
+            static _ => new Entry(new SemaphoreSlim(1, 1), 1),
+            static (_, entry) => entry with { RefCount = entry.RefCount + 1 });
+
+        if (!entry.Semaphore.Wait(timeout, cancellationToken))
             throw new TimeoutException("Failed to acquire lock within the specified timeout.");
 
         return new(key, this);
@@ -71,7 +91,7 @@ public class KeyLocker<T> where T : notnull
     /// expires.
     /// </summary>
     /// <param name="key">The key to lock.</param>
-    /// <param name="millisecondsTimeout">The number of milliseconds to wait, or <see cref="Timeout.Infinite"/>(-1) to wait indefinitely.</param>
+    /// <param name="millisecondsTimeout">The number of milliseconds to wait, or <see cref="Timeout.Infinite"/> (<c>-1</c>) to wait indefinitely.</param>
     /// <param name="cancellationToken">Optional cancellation token.</param>
     /// <returns>A task that contains the acquired lock when it completes.</returns>
     /// <exception cref="TimeoutException">Lock could not be acquired within the specified timeout.</exception>
@@ -82,6 +102,27 @@ public class KeyLocker<T> where T : notnull
             static (_, entry) => entry with { RefCount = entry.RefCount + 1 });
 
         if (!await entry.Semaphore.WaitAsync(millisecondsTimeout, cancellationToken).ConfigureAwait(false))
+            throw new TimeoutException("Failed to acquire lock within the specified timeout.");
+
+        return new(key, this);
+    }
+
+    /// <summary>
+    /// Asynchronously acquires a lock for the specified key. If the lock is already held, it will wait until it can acquire the lock or the specified timeout
+    /// expires.
+    /// </summary>
+    /// <param name="key">The key to lock.</param>
+    /// <param name="timeout">The amount of time to wait, or <see cref="Timeout.InfiniteTimeSpan"/> to wait indefinitely.</param>
+    /// <param name="cancellationToken">Optional cancellation token.</param>
+    /// <returns>A task that contains the acquired lock when it completes.</returns>
+    /// <exception cref="TimeoutException">Lock could not be acquired within the specified timeout.</exception>
+    public async ValueTask<KeyLock<T>> LockAsync(T key, TimeSpan timeout, CancellationToken cancellationToken = default)
+    {
+        Entry entry = _lockEntryLookup.AddOrUpdate(key,
+            static _ => new Entry(new SemaphoreSlim(1, 1), 1),
+            static (_, entry) => entry with { RefCount = entry.RefCount + 1 });
+
+        if (!await entry.Semaphore.WaitAsync(timeout, cancellationToken).ConfigureAwait(false))
             throw new TimeoutException("Failed to acquire lock within the specified timeout.");
 
         return new(key, this);
