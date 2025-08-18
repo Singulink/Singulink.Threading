@@ -24,7 +24,7 @@ You can view the fully documented API on the [project documentation site](https:
 
 ## Usage
 
-This library makes use of mutable structs as a low-level performance optimization. These structs have been annotated with a `[NonCopyable]` attribute to allow a non-copyable struct analyzer to detect misuse. When using this library, it is recommend that either [NonCopyableAnalyzer](https://github.com/ufcpp/NonCopyableAnalyzer) or [Roslyn.Diagnostics.Analyzers](https://www.nuget.org/packages/Roslyn.Diagnostics.Analyzers/) is added to the project to warn on potentially unintended copying of these structs.
+This library makes use of mutable structs as a low-level performance optimization. These structs have been annotated with a `[NonCopyable]` attribute to allow a non-copyable struct analyzer to detect misuse, so if you add [Roslyn.Diagnostics.Analyzers](https://www.nuget.org/packages/Roslyn.Diagnostics.Analyzers/) to your project then it will warn on potentially unintended copying of these structs. Note, there are some usability issues with [NonCopyableAnalyzer](https://github.com/ufcpp/NonCopyableAnalyzer) and it does not appear to be maintained anymore, so we recommend using the Roslyn analyzer instead.
 
 ### InterlockedFlag
 
@@ -43,9 +43,12 @@ public class ExecuteOnce
         }
     }
 
-    public void AllowOneMoreRun()
+    // Returns true if another run was allowed,
+    // or false if it was already allowed before.
+
+    public bool AllowOneMoreRun()
     {
-        _executedFlag.TryClear();
+        return _executedFlag.TryClear();
     }
 }
 ```
@@ -98,7 +101,7 @@ async Task ProcessItemAsync(string itemId)
     using (await _locker.LockAsync(itemId))
     {
         // Safe to process the item here without concurrent access
-        DoProcessing(itemId);
+        await DoProcessingAsync(itemId);
     }
 }
 ```
