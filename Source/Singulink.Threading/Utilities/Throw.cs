@@ -1,12 +1,18 @@
+using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 
 namespace Singulink.Threading.Utilities;
 
 internal static class Throw
 {
-    [return: NotNull]
-    public static T NotInitializedIfNull<T>([NotNull] T value)
+    [StackTraceHidden]
+    public static void NotInitializedIf(bool condition)
     {
-        return value ?? throw new InvalidOperationException("Instance has not been properly initialized.");
+        if (condition)
+        {
+            [DoesNotReturn]
+            static void Throw() => throw new InvalidOperationException("Instance has not been initialized.");
+            Throw();
+        }
     }
 }

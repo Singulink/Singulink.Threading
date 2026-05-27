@@ -1,3 +1,4 @@
+using System.Diagnostics.CodeAnalysis;
 using Microsoft.CodeAnalysis;
 using Singulink.Threading.Utilities;
 
@@ -12,17 +13,36 @@ public struct UpgradeableReadGuard : IDisposable
     private ReaderWriterLockSlim? _rwLock;
     private bool _isUpgraded;
     private bool _isDisposed;
+    private readonly bool _isInitialized;
 
     /// <summary>
     /// Gets a value indicating whether the guard has been upgraded to a write guard.
     /// </summary>
     public bool IsUpgraded => _isUpgraded;
 
+    /// <summary>
+    /// Gets a value indicating whether the instance is in its default, uninitialized state.
+    /// </summary>
+    public readonly bool IsDefault => !_isInitialized;
+
+    /// <summary>
+    /// Gets a value indicating whether the object has been disposed.
+    /// </summary>
+    [MemberNotNullWhen(false, nameof(_rwLock))]
+    public readonly bool IsDisposed
+    {
+        get {
+            Throw.NotInitializedIf(!_isInitialized);
+            return _isDisposed;
+        }
+    }
+
     internal UpgradeableReadGuard(ReaderWriterLockSlim rwLock)
     {
         _isUpgraded = false;
         _rwLock = rwLock;
         _rwLock.EnterUpgradeableReadLock();
+        _isInitialized = true;
     }
 
     /// <summary>
@@ -30,7 +50,8 @@ public struct UpgradeableReadGuard : IDisposable
     /// </summary>
     public void UpgradeToWriteGuard()
     {
-        Throw.NotInitializedIfNull(_rwLock);
+        Throw.NotInitializedIf(!_isInitialized);
+        ObjectDisposedException.ThrowIf(IsDisposed, nameof(UpgradeableReadGuard));
 
         if (_isUpgraded)
             throw new InvalidOperationException("The guard is already upgraded to a write guard.");
@@ -44,12 +65,12 @@ public struct UpgradeableReadGuard : IDisposable
     /// </summary>
     public void Dispose()
     {
-        if (_isDisposed)
+        Throw.NotInitializedIf(!_isInitialized);
+
+        if (IsDisposed)
             return;
 
         _isDisposed = true;
-
-        Throw.NotInitializedIfNull(_rwLock);
 
         if (!_isUpgraded)
             _rwLock.ExitUpgradeableReadLock();

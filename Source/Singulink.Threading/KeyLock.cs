@@ -1,3 +1,4 @@
+using System.Diagnostics.CodeAnalysis;
 using Microsoft.CodeAnalysis;
 using Singulink.Threading.Utilities;
 
@@ -12,6 +13,7 @@ public struct KeyLock<T> : IDisposable where T : notnull
     private T? _key;
     private KeyLocker<T>? _parent;
     private bool _isDisposed;
+    private readonly bool _isInitialized;
 
     /// <summary>
     /// Gets the key associated with this lock.
@@ -19,8 +21,9 @@ public struct KeyLock<T> : IDisposable where T : notnull
     public readonly T Key
     {
         get {
-            ObjectDisposedException.ThrowIf(_isDisposed, nameof(KeyLock<>));
-            return Throw.NotInitializedIfNull(_key);
+            Throw.NotInitializedIf(!_isInitialized);
+            ObjectDisposedException.ThrowIf(IsDisposed, nameof(KeyLock<>));
+            return _key;
         }
     }
 
@@ -30,8 +33,26 @@ public struct KeyLock<T> : IDisposable where T : notnull
     public readonly KeyLocker<T> Parent
     {
         get {
-            ObjectDisposedException.ThrowIf(_isDisposed, nameof(KeyLock<>));
-            return Throw.NotInitializedIfNull(_parent);
+            Throw.NotInitializedIf(!_isInitialized);
+            ObjectDisposedException.ThrowIf(IsDisposed, nameof(KeyLock<>));
+            return _parent;
+        }
+    }
+
+    /// <summary>
+    /// Gets a value indicating whether the instance is in its default, uninitialized state.
+    /// </summary>
+    public readonly bool IsDefault => !_isInitialized;
+
+    /// <summary>
+    /// Gets a value indicating whether the object has been disposed.
+    /// </summary>
+    [MemberNotNullWhen(false, nameof(_key), nameof(_parent))]
+    public readonly bool IsDisposed
+    {
+        get {
+            Throw.NotInitializedIf(!_isInitialized);
+            return _isDisposed;
         }
     }
 
@@ -39,6 +60,7 @@ public struct KeyLock<T> : IDisposable where T : notnull
     {
         _key = key;
         _parent = parent;
+        _isInitialized = true;
     }
 
     /// <summary>
@@ -46,12 +68,13 @@ public struct KeyLock<T> : IDisposable where T : notnull
     /// </summary>
     public void Dispose()
     {
-        if (_isDisposed)
+        Throw.NotInitializedIf(!_isInitialized);
+
+        if (IsDisposed)
             return;
 
         _isDisposed = true;
-
-        Throw.NotInitializedIfNull(_parent).Release(_key!);
+        _parent.Release(_key);
 
         _key = default;
         _parent = null;
