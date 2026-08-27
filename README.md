@@ -4,7 +4,7 @@
 [![View nuget packages](https://img.shields.io/nuget/v/Singulink.Threading.svg)](https://www.nuget.org/packages/Singulink.Threading/)
 [![Build and Test](https://github.com/Singulink/Singulink.Threading/workflows/build%20and%20test/badge.svg)](https://github.com/Singulink/Singulink.Threading/actions?query=workflow%3A%22build+and+test%22)
 
-**Singulink.Threading** is a small utility library used to support other Singulink projects with some common multi-threading related functionality. It has a key-based asynchronous-capable locking mechanism, common interlocked spin operation helpers, reader/writer lock extensions and an interlocked flag implementation.
+**Singulink.Threading** is a small utility library used to support other Singulink projects with some common multi-threading related functionality. It has a key-based asynchronous-capable locking mechanism, common interlocked spin operation helpers, a guard-based reader/writer lock and an interlocked flag implementation.
 
 ### About Singulink
 
@@ -106,42 +106,63 @@ async Task ProcessItemAsync(string itemId)
 }
 ```
 
-### ReaderWriterLockSlimExtensions
+### ReadWriteLock
 
-When you import the `Singulink.Threading` namespace, 3 new extension methods appear on `ReaderWriterLockSlim` instances:
-- `EnterReadGuard()`
-- `EnterWriteGuard()`
-- `EnterUpgradeableReadGuard()`
+`ReadWriteLock` is a reader/writer lock (wrapping a `ReaderWriterLockSlim` with `LockRecursionPolicy.NoRecursion`) that manages all lock entry through disposable guards, so lock modes can't be manipulated behind the guards' backs and locks can't be accidentally left unreleased.
+
+The naming convention across the API: `Enter…Guard` methods return a guard that entered the lock, `TryEnter…Guard` methods return a guard that may not have entered the lock (check `IsEntered` — disposing a non-entered guard is a safe no-op, so results can be assigned directly to `using` declarations), and methods ending in `…Lock` operate on the current guard in place.
 
 ```c#
-using Singulink.Threading;
-
-ReaderWriterLockSlim lock = new();
+ReadWriteLock rwLock = new();
 
 // Locks are acquired inside the using blocks and released at the end:
 
-using (lock.EnterReadGuard())
+using (rwLock.EnterReadGuard())
 {
     // Safe to read here
     ReadData();
 }
 
-using (lock.EnterWriteGuard())
+using (rwLock.EnterWriteGuard())
 {
     // Safe to write here
     WriteData();
 }
-
-using (var upgradeableGuard = lock.EnterUpgradeableReadGuard())
-{
-    // Safe to read here
-    ReadData();
-
-    if (someCondition)
-    {
-        upgradeableGuard.UpgradeToWriteGuard();
-        // Safe to write here
-        WriteData();
-    }
-}
 ```
+
+Timeout-based acquisition uses the `TryEnter…Guard` methods:
+
+```c#
+using var guard = rwLock.TryEnterWriteGuard(TimeSpan.FromSeconds(5));
+
+if (!guard.IsEntered)
+    return false; // could not acquire the lock within the timeout
+
+WriteData();
+return true;
+```
+
+Upgradeable read guards support scoped, repeatable upgrades to write access, and one-way downgrades to a plain read lock:
+
+```c#
+using var guard = rwLock.EnterUpgradeableReadGuard();
+
+if (NeedsUpdate())
+{
+    using (guard.EnterUpgradedWriteGuard())
+    {
+        // Safe to write here
+        ApplyUpdate();
+    }
+
+    // Back in upgradeable read mode here - other readers can run again, and the
+    // guard can be upgraded again if needed.
+}
+
+// Optionally downgrade to a plain read lock so another thread can enter
+// upgradeable (or write) mode while this thread continues reading:
+guard.DowngradeToReadLock();
+ReadData();
+```
+
+Write locks entered directly cannot be downgraded - enter the lock in upgradeable read mode if downgrading may be needed. The lock has managed thread affinity: each guard must be entered and disposed on the same thread, and guards must not be used across `await` boundaries. This is enforced - guard operations attempted on a different thread than the one that entered the lock throw `InvalidOperationException` immediately instead of corrupting lock state or deadlocking.

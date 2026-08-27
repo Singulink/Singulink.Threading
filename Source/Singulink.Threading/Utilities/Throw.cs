@@ -15,4 +15,17 @@ internal static class Throw
             Throw();
         }
     }
+
+    [StackTraceHidden]
+    public static void WrongGuardThreadIf(bool condition)
+    {
+        if (condition)
+        {
+            [DoesNotReturn]
+            static void Throw() => throw new InvalidOperationException(
+                "Guard operations must be performed on the thread that entered the lock. " +
+                "This commonly occurs when a guard is used across an 'await' boundary.");
+            Throw();
+        }
+    }
 }

@@ -5,19 +5,42 @@ using Singulink.Threading.Utilities;
 namespace Singulink.Threading;
 
 /// <summary>
-/// Represents a disposable read guard over a <see cref="ReaderWriterLockSlim"/>.
+/// Represents a disposable read guard over a <see cref="ReadWriteLock"/>.
 /// </summary>
+/// <remarks>
+/// <para>Guards returned from <c>TryEnter</c> methods may not have entered the lock — check
+/// <see cref="IsEntered"/> after acquiring. Disposing a guard that did not enter the lock is a safe no-op,
+/// so guards can always be assigned directly to a <see langword="using"/> declaration.</para>
+/// <para>Guards are thread-affine: an entered guard must be disposed on the thread that entered the lock,
+/// which is enforced with an <see cref="InvalidOperationException"/> when violated.</para>
+/// </remarks>
 [NonCopyable]
 public struct ReadGuard : IDisposable
 {
     private ReaderWriterLockSlim? _rwLock;
     private bool _isDisposed;
+    private readonly int _ownerThreadId;
+    private readonly bool _isEntered;
     private readonly bool _isInitialized;
 
     /// <summary>
     /// Gets a value indicating whether the instance is in its default, uninitialized state.
     /// </summary>
     public readonly bool IsDefault => !_isInitialized;
+
+    /// <summary>
+    /// Gets a value indicating whether the guard entered the lock. Always <see langword="true"/> for guards
+    /// obtained from <see cref="ReadWriteLock.EnterReadGuard"/>; guards obtained from <c>TryEnter</c>
+    /// methods did not enter the lock if the timeout expired, in which case the protected resource must not
+    /// be accessed.
+    /// </summary>
+    public readonly bool IsEntered
+    {
+        get {
+            Throw.NotInitializedIf(!_isInitialized);
+            return _isEntered;
+        }
+    }
 
     /// <summary>
     /// Gets a value indicating whether the object has been disposed.
@@ -31,16 +54,19 @@ public struct ReadGuard : IDisposable
         }
     }
 
-    internal ReadGuard(ReaderWriterLockSlim rwLock)
+    internal ReadGuard(ReaderWriterLockSlim rwLock, bool entered)
     {
         _rwLock = rwLock;
-        _rwLock.EnterReadLock();
+        _ownerThreadId = Environment.CurrentManagedThreadId;
+        _isEntered = entered;
         _isInitialized = true;
     }
 
     /// <summary>
-    /// Releases the read guard.
+    /// Releases the read guard. No-op if the guard did not enter the lock.
     /// </summary>
+    /// <exception cref="InvalidOperationException">The guard entered the lock and disposal was attempted on
+    /// a different thread than the one that entered it.</exception>
     public void Dispose()
     {
         Throw.NotInitializedIf(!_isInitialized);
@@ -48,8 +74,13 @@ public struct ReadGuard : IDisposable
         if (IsDisposed)
             return;
 
+        Throw.WrongGuardThreadIf(_isEntered && Environment.CurrentManagedThreadId != _ownerThreadId);
+
         _isDisposed = true;
-        _rwLock.ExitReadLock();
+
+        if (_isEntered)
+            _rwLock.ExitReadLock();
+
         _rwLock = null;
     }
 }
