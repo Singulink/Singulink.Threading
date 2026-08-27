@@ -48,11 +48,22 @@ public class KeyLocker<T> where T : notnull
     /// <exception cref="TimeoutException">Lock could not be acquired within the specified timeout.</exception>
     public KeyLock<T> Lock(T key, int millisecondsTimeout, CancellationToken cancellationToken = default)
     {
-        Entry entry = _lockEntryLookup.AddOrUpdate(key,
-            static _ => new Entry(new SemaphoreSlim(1, 1), 1),
-            static (_, entry) => entry with { RefCount = entry.RefCount + 1 });
+        Entry entry = AddEntryRef(key);
+        bool acquired = false;
 
-        if (!entry.Semaphore.Wait(millisecondsTimeout, cancellationToken))
+        try
+        {
+            acquired = entry.Semaphore.Wait(millisecondsTimeout, cancellationToken);
+        }
+        finally
+        {
+            // Balance the reference taken above if the wait failed (timeout) or threw (cancellation) - the
+            // caller gets no lock, so nothing else will ever release it.
+            if (!acquired)
+                ReleaseEntryRef(key);
+        }
+
+        if (!acquired)
             throw new TimeoutException("Failed to acquire lock within the specified timeout.");
 
         return new(key, this);
@@ -68,11 +79,22 @@ public class KeyLocker<T> where T : notnull
     /// <exception cref="TimeoutException">Lock could not be acquired within the specified timeout.</exception>
     public KeyLock<T> Lock(T key, TimeSpan timeout, CancellationToken cancellationToken = default)
     {
-        Entry entry = _lockEntryLookup.AddOrUpdate(key,
-            static _ => new Entry(new SemaphoreSlim(1, 1), 1),
-            static (_, entry) => entry with { RefCount = entry.RefCount + 1 });
+        Entry entry = AddEntryRef(key);
+        bool acquired = false;
 
-        if (!entry.Semaphore.Wait(timeout, cancellationToken))
+        try
+        {
+            acquired = entry.Semaphore.Wait(timeout, cancellationToken);
+        }
+        finally
+        {
+            // Balance the reference taken above if the wait failed (timeout) or threw (cancellation) - the
+            // caller gets no lock, so nothing else will ever release it.
+            if (!acquired)
+                ReleaseEntryRef(key);
+        }
+
+        if (!acquired)
             throw new TimeoutException("Failed to acquire lock within the specified timeout.");
 
         return new(key, this);
@@ -97,11 +119,22 @@ public class KeyLocker<T> where T : notnull
     /// <exception cref="TimeoutException">Lock could not be acquired within the specified timeout.</exception>
     public async ValueTask<KeyLock<T>> LockAsync(T key, int millisecondsTimeout, CancellationToken cancellationToken = default)
     {
-        Entry entry = _lockEntryLookup.AddOrUpdate(key,
-            static _ => new Entry(new SemaphoreSlim(1, 1), 1),
-            static (_, entry) => entry with { RefCount = entry.RefCount + 1 });
+        Entry entry = AddEntryRef(key);
+        bool acquired = false;
 
-        if (!await entry.Semaphore.WaitAsync(millisecondsTimeout, cancellationToken).ConfigureAwait(false))
+        try
+        {
+            acquired = await entry.Semaphore.WaitAsync(millisecondsTimeout, cancellationToken).ConfigureAwait(false);
+        }
+        finally
+        {
+            // Balance the reference taken above if the wait failed (timeout) or threw (cancellation) - the
+            // caller gets no lock, so nothing else will ever release it.
+            if (!acquired)
+                ReleaseEntryRef(key);
+        }
+
+        if (!acquired)
             throw new TimeoutException("Failed to acquire lock within the specified timeout.");
 
         return new(key, this);
@@ -118,41 +151,63 @@ public class KeyLocker<T> where T : notnull
     /// <exception cref="TimeoutException">Lock could not be acquired within the specified timeout.</exception>
     public async ValueTask<KeyLock<T>> LockAsync(T key, TimeSpan timeout, CancellationToken cancellationToken = default)
     {
-        Entry entry = _lockEntryLookup.AddOrUpdate(key,
-            static _ => new Entry(new SemaphoreSlim(1, 1), 1),
-            static (_, entry) => entry with { RefCount = entry.RefCount + 1 });
+        Entry entry = AddEntryRef(key);
+        bool acquired = false;
 
-        if (!await entry.Semaphore.WaitAsync(timeout, cancellationToken).ConfigureAwait(false))
+        try
+        {
+            acquired = await entry.Semaphore.WaitAsync(timeout, cancellationToken).ConfigureAwait(false);
+        }
+        finally
+        {
+            // Balance the reference taken above if the wait failed (timeout) or threw (cancellation) - the
+            // caller gets no lock, so nothing else will ever release it.
+            if (!acquired)
+                ReleaseEntryRef(key);
+        }
+
+        if (!acquired)
             throw new TimeoutException("Failed to acquire lock within the specified timeout.");
 
         return new(key, this);
     }
 
-    internal void Release(T key)
-    {
-        Entry entry;
+    internal void Release(T key) => ReleaseEntryRef(key).Semaphore.Release();
 
+    /// <summary>
+    /// Takes an interested-party reference on the key's entry, creating the entry if it does not exist. Every
+    /// reference must be balanced by a <see cref="ReleaseEntryRef"/> call (via lock disposal or wait failure)
+    /// so the entry is removed when no references remain.
+    /// </summary>
+    private Entry AddEntryRef(T key)
+    {
+        return _lockEntryLookup.AddOrUpdate(key,
+            static _ => new Entry(new SemaphoreSlim(1, 1), 1),
+            static (_, entry) => entry with { RefCount = entry.RefCount + 1 });
+    }
+
+    /// <summary>
+    /// Releases an interested-party reference on the key's entry, removing the entry when no references
+    /// remain. Callers that hold the semaphore release it separately (see <see cref="Release"/>); failed
+    /// waits never acquired it and must not release it.
+    /// </summary>
+    private Entry ReleaseEntryRef(T key)
+    {
         while (true)
         {
-            bool exists = _lockEntryLookup.TryGetValue(key, out entry);
-
-            if (!exists)
+            if (!_lockEntryLookup.TryGetValue(key, out Entry entry))
                 throw new InvalidOperationException("Key not found.");
 
             if (entry.RefCount > 1)
             {
-                var newEntry = entry with { RefCount = entry.RefCount - 1 };
-
-                if (_lockEntryLookup.TryUpdate(key, newEntry, entry))
-                    break;
+                if (_lockEntryLookup.TryUpdate(key, entry with { RefCount = entry.RefCount - 1 }, entry))
+                    return entry;
             }
             else
             {
                 if (_lockEntryLookup.TryRemove(KeyValuePair.Create(key, entry)))
-                    break;
+                    return entry;
             }
         }
-
-        entry.Semaphore.Release();
     }
 }

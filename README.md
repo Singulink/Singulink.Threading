@@ -2,7 +2,7 @@
 
 [![Chat on Discord](https://img.shields.io/discord/906246067773923490)](https://discord.gg/EkQhJFsBu6)
 [![View nuget packages](https://img.shields.io/nuget/v/Singulink.Threading.svg)](https://www.nuget.org/packages/Singulink.Threading/)
-[![Build](https://github.com/Singulink/Singulink.Threading/workflows/build/badge.svg)](https://github.com/Singulink/Singulink.Threading/actions?query=workflow%3A%22build%22)
+[![Build and Test](https://github.com/Singulink/Singulink.Threading/workflows/build%20and%20test/badge.svg)](https://github.com/Singulink/Singulink.Threading/actions?query=workflow%3A%22build+and+test%22)
 
 **Singulink.Threading** is a small utility library used to support other Singulink projects with some common multi-threading related functionality. It has a key-based asynchronous-capable locking mechanism, common interlocked spin operation helpers, reader/writer lock extensions and an interlocked flag implementation.
 

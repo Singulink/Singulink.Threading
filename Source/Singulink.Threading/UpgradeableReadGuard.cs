@@ -61,7 +61,7 @@ public struct UpgradeableReadGuard : IDisposable
     }
 
     /// <summary>
-    /// Releases the upgradeable read guard (or write guard if it was upgraded).
+    /// Releases the upgradeable read guard (and the write lock first, if it was upgraded).
     /// </summary>
     public void Dispose()
     {
@@ -72,11 +72,12 @@ public struct UpgradeableReadGuard : IDisposable
 
         _isDisposed = true;
 
-        if (!_isUpgraded)
-            _rwLock.ExitUpgradeableReadLock();
-        else
+        // An upgraded guard holds both the write lock and the underlying upgradeable read lock, so both
+        // must be exited (in that order) to fully release the guard.
+        if (_isUpgraded)
             _rwLock.ExitWriteLock();
 
+        _rwLock.ExitUpgradeableReadLock();
         _rwLock = null;
     }
 }
