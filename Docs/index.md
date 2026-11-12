@@ -4,7 +4,7 @@
 
 ## Overview
 
-**Singulink.Threading** is a small utility library for assisting with multithreading-related tasks. It has a key-based asynchronous-capable locking mechanism, common interlocked spin operation helpers, read/write lock extensions and an interlocked boolean flag implementation.
+**Singulink.Threading** is a small utility library for assisting with multithreading-related tasks. It has a key-based asynchronous-capable locking mechanism, common interlocked spin operation helpers, a guard-based reader/writer lock, a non-reentrant leaf lock, a timer that paces retries of an operation and an interlocked boolean flag implementation.
 
 This package is part of our **Singulink Libraries** collection. Visit https://github.com/Singulink to see our full list of publicly available libraries and other open-source projects.
 

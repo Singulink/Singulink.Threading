@@ -2,8 +2,8 @@
   <PropertyGroup>
     <TargetFrameworks>net8.0</TargetFrameworks>
 
-    <Version>3.0.0</Version>
-    <PackageTags>Interlocked, Concurrent, Spin, Async, Key, Lock</PackageTags>
+    <Version>3.1.0</Version>
+    <PackageTags>Interlocked, Concurrent, Spin, Async, Key, Lock, Retry</PackageTags>
     <Description>Small utility library for assisting with multithreading-related tasks.</Description>
   </PropertyGroup>
 </Project>

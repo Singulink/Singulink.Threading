@@ -4,7 +4,7 @@
 [![View nuget packages](https://img.shields.io/nuget/v/Singulink.Threading.svg)](https://www.nuget.org/packages/Singulink.Threading/)
 [![Build and Test](https://github.com/Singulink/Singulink.Threading/workflows/build%20and%20test/badge.svg)](https://github.com/Singulink/Singulink.Threading/actions?query=workflow%3A%22build+and+test%22)
 
-**Singulink.Threading** is a small utility library used to support other Singulink projects with some common multi-threading related functionality. It has a key-based asynchronous-capable locking mechanism, common interlocked spin operation helpers, a guard-based reader/writer lock and an interlocked flag implementation.
+**Singulink.Threading** is a small utility library used to support other Singulink projects with some common multi-threading related functionality. It has a key-based asynchronous-capable locking mechanism, common interlocked spin operation helpers, a guard-based reader/writer lock, a non-reentrant leaf lock, a timer that paces retries of an operation and an interlocked flag implementation.
 
 ### About Singulink
 
@@ -166,3 +166,65 @@ ReadData();
 ```
 
 Write locks entered directly cannot be downgraded - enter the lock in upgradeable read mode if downgrading may be needed. The lock has managed thread affinity: each guard must be entered and disposed on the same thread, and guards must not be used across `await` boundaries. This is enforced - guard operations attempted on a different thread than the one that entered the lock throw `InvalidOperationException` immediately instead of corrupting lock state or deadlocking.
+
+### LeafLock
+
+`LeafLock` is a non-reentrant lock for short critical sections that never nest and are never held across other work. Entering it returns a struct guard, so a `using` statement allocates nothing. Entering it again on the thread that holds it throws `LockRecursionException` instead of deadlocking, and `EnsureHeld` and `EnsureNotHeld` check, in release builds too, that code runs under the lock or outside it.
+
+```c#
+LeafLock _lock = new();
+Dictionary<string, Entry> _entries = [];
+
+void Add(string key, Entry entry)
+{
+    using (_lock.EnterGuard())
+    {
+        AddLocked(key, entry);
+    }
+}
+
+void AddLocked(string key, Entry entry)
+{
+    _lock.EnsureHeld();
+    _entries.Add(key, entry);
+}
+
+async Task FlushAsync()
+{
+    // Throws if this code is ever reached while the lock is held.
+    _lock.EnsureNotHeld();
+    await WriteToDiskAsync();
+}
+```
+
+Like the `ReadWriteLock` guards, a `LeafLock` guard must be disposed on the thread that entered the lock, so it must not be held across an `await`.
+
+### RetryTimer
+
+`RetryTimer` paces the attempts of an operation that fails briefly, such as a file that another process has open for a moment: it waits a delay between attempts until a time limit has passed. The time is measured with a `TimeProvider`, so tests can control it. The timer is a struct that the caller loops over, so the operation needs no delegate or closure, and an operation that succeeds on its first attempt allocates nothing.
+
+```c#
+async Task<bool> TryMoveAsync(string source, string destination, CancellationToken cancellationToken)
+{
+    // Retries for up to 5 seconds, 50 ms apart. An overload takes a TimeProvider to measure the time with.
+    var retry = RetryTimer.Start(TimeSpan.FromSeconds(5), TimeSpan.FromMilliseconds(50));
+
+    while (true)
+    {
+        try
+        {
+            File.Move(source, destination);
+            return true;
+        }
+        catch (IOException)
+        {
+            // Something may have the file open for a moment.
+        }
+
+        if (!await retry.TryWaitAsync(cancellationToken))
+            return false;
+    }
+}
+```
+
+`TryWait` and `TryWaitAsync` wait and return `true` while the time limit has not passed, and return `false` without waiting once it has. `CanRetry` with `Wait` or `WaitAsync` splits the decision from the wait, for code that decides while it holds a lock.

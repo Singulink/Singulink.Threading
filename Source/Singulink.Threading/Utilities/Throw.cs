@@ -6,7 +6,7 @@ namespace Singulink.Threading.Utilities;
 internal static class Throw
 {
     [StackTraceHidden]
-    public static void NotInitializedIf(bool condition)
+    public static void NotInitializedIf([DoesNotReturnIf(true)] bool condition)
     {
         if (condition)
         {
@@ -17,7 +17,7 @@ internal static class Throw
     }
 
     [StackTraceHidden]
-    public static void WrongGuardThreadIf(bool condition)
+    public static void WrongGuardThreadIf([DoesNotReturnIf(true)] bool condition)
     {
         if (condition)
         {
