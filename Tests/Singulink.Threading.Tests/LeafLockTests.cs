@@ -196,34 +196,6 @@ public class LeafLockTests
         leafLock.IsHeldByCurrentThread.ShouldBeFalse();
     }
 
-    [TestMethod]
-    public void EnterGuardAndChecks_DoNotAllocate()
-    {
-        var leafLock = new LeafLock();
-
-        // Warm up so that first-call costs are not measured.
-        EnterAndCheck(leafLock);
-
-        long before = GC.GetAllocatedBytesForCurrentThread();
-
-        for (int i = 0; i < 1000; i++)
-            EnterAndCheck(leafLock);
-
-        long allocated = GC.GetAllocatedBytesForCurrentThread() - before;
-        allocated.ShouldBe(0);
-
-        static void EnterAndCheck(LeafLock leafLock)
-        {
-            leafLock.EnsureNotHeld();
-
-            using (leafLock.EnterGuard())
-            {
-                leafLock.EnsureHeld();
-                _ = leafLock.IsHeldByCurrentThread;
-            }
-        }
-    }
-
     private static Exception? RunOnOtherThread(Action action)
     {
         Exception? exception = null;

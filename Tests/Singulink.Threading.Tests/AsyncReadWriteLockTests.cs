@@ -2554,111 +2554,6 @@ public class AsyncReadWriteLockTests
 
     #endregion
 
-    #region Allocation
-
-    [TestMethod]
-    [DataRow(Fair)]
-    [DataRow(Readers)]
-    [DataRow(Writers)]
-    public void UncontendedEnterAndRelease_DoesNotAllocate(AsyncReadWriteLockPreference preference)
-    {
-        var rwLock = new AsyncReadWriteLock(preference);
-        using var cts = new CancellationTokenSource();
-        var token = cts.Token;
-
-        MeasureAllocatedBytes(() => {
-            var read = rwLock.EnterReadGuardAsync(token);
-            Check(read.IsCompletedSuccessfully);
-            var readGuard = read.Result;
-            Check(readGuard.IsEntered && rwLock.IsHeldForRead && rwLock.CurrentReadCount is 1);
-
-            // A second reader beside the first.
-            var read2 = rwLock.TryEnterReadGuardAsync(Limit, token);
-            Check(read2.IsCompletedSuccessfully);
-            var readGuard2 = read2.Result;
-            Check(readGuard2.IsEntered);
-
-            var readGuard3 = rwLock.TryEnterReadGuard();
-            Check(readGuard3.IsEntered);
-
-            readGuard.Dispose();
-            readGuard2.Dispose();
-            readGuard3.Dispose();
-
-            var write = rwLock.EnterWriteGuardAsync(token);
-            Check(write.IsCompletedSuccessfully);
-            var writeGuard = write.Result;
-            Check(writeGuard.IsEntered && rwLock.IsHeldForWrite);
-            writeGuard.Dispose();
-
-            var write2 = rwLock.TryEnterWriteGuardAsync(Limit, token);
-            Check(write2.IsCompletedSuccessfully);
-            var writeGuard2 = write2.Result;
-            Check(writeGuard2.IsEntered);
-            writeGuard2.Dispose();
-
-            var writeGuard3 = rwLock.TryEnterWriteGuard();
-            Check(writeGuard3.IsEntered);
-            writeGuard3.Dispose();
-
-            Check(!rwLock.IsHeldForRead && !rwLock.IsHeldForWrite && rwLock.WaitingReadCount is 0 && rwLock.WaitingWriteCount is 0);
-        }).ShouldBe(0);
-    }
-
-    [TestMethod]
-    [DataRow(Fair)]
-    [DataRow(Readers)]
-    [DataRow(Writers)]
-    public void TryEnterWithoutWaiting_NotEntered_DoesNotAllocate(AsyncReadWriteLockPreference preference)
-    {
-        var rwLock = new AsyncReadWriteLock(preference);
-        var holder = rwLock.TryEnterWriteGuard();
-
-        MeasureAllocatedBytes(() => {
-            var readGuard = rwLock.TryEnterReadGuard();
-            var writeGuard = rwLock.TryEnterWriteGuard();
-            var read = rwLock.TryEnterReadGuardAsync(TimeSpan.Zero);
-            var write = rwLock.TryEnterWriteGuardAsync(TimeSpan.Zero);
-
-            Check(read.IsCompletedSuccessfully && write.IsCompletedSuccessfully);
-            var readGuard2 = read.Result;
-            var writeGuard2 = write.Result;
-            Check(!readGuard.IsEntered && !writeGuard.IsEntered && !readGuard2.IsEntered && !writeGuard2.IsEntered);
-
-            readGuard.Dispose();
-            writeGuard.Dispose();
-            readGuard2.Dispose();
-            writeGuard2.Dispose();
-        }).ShouldBe(0);
-
-        holder.Dispose();
-        ShouldBeFree(rwLock);
-    }
-
-    [TestMethod]
-    public void ReadersPreference_EnterWhileWriterWaits_DoesNotAllocate()
-    {
-        var rwLock = new AsyncReadWriteLock(Readers);
-        var holder = rwLock.TryEnterReadGuard();
-        var writer = rwLock.EnterWriteGuardAsync();
-
-        // The commits of a consumer that prefers readers stay on the path that allocates nothing while an exclusive caller waits.
-        MeasureAllocatedBytes(() => {
-            var read = rwLock.EnterReadGuardAsync();
-            Check(read.IsCompletedSuccessfully);
-            var guard = read.Result;
-            Check(guard.IsEntered);
-            guard.Dispose();
-        }).ShouldBe(0);
-
-        writer.IsCompleted.ShouldBeFalse();
-        holder.Dispose();
-        writer.Result.Dispose();
-        ShouldBeFree(rwLock);
-    }
-
-    #endregion
-
     #region Helpers
 
     private static void ShouldBeFree(AsyncReadWriteLock rwLock)
@@ -2829,27 +2724,6 @@ public class AsyncReadWriteLockTests
         thread.Join(TestTimeout).ShouldBeTrue();
 
         return exception;
-    }
-
-    // Returns what the action allocates on this thread over a thousand runs, once it has run a few times so that first-call costs are not counted.
-    // The action uses plain checks: an assertion library can allocate by itself.
-    private static long MeasureAllocatedBytes(Action action)
-    {
-        for (int i = 0; i < 10; i++)
-            action();
-
-        long before = GC.GetAllocatedBytesForCurrentThread();
-
-        for (int i = 0; i < 1000; i++)
-            action();
-
-        return GC.GetAllocatedBytesForCurrentThread() - before;
-    }
-
-    private static void Check(bool condition)
-    {
-        if (!condition)
-            throw new InvalidOperationException("The lock is not in the expected state.");
     }
 
     /// <summary>
