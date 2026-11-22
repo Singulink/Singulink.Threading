@@ -1,4 +1,4 @@
-using Microsoft.CodeAnalysis;
+using Singulink.CodeAnalysis;
 
 namespace Singulink.Threading;
 

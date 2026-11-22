@@ -173,7 +173,7 @@ public class ReadWriteLockTests
         upgradeableGuard.IsDefault.ShouldBeTrue();
         Should.Throw<InvalidOperationException>(() => _ = upgradeableGuard.IsEntered);
         Should.Throw<InvalidOperationException>(() => upgradeableGuard.Dispose());
-        Should.Throw<InvalidOperationException>(() => upgradeableGuard.EnterUpgradedWriteGuard());
+        Should.Throw<InvalidOperationException>(() => { using var unexpected = upgradeableGuard.EnterUpgradedWriteGuard(); });
         Should.Throw<InvalidOperationException>(() => upgradeableGuard.DowngradeToReadLock());
     }
 

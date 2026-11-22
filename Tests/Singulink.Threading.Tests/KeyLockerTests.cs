@@ -56,8 +56,8 @@ public class KeyLockerTests
 
         var holder = locker.Lock(Key);
 
-        Should.Throw<TimeoutException>(() => locker.Lock(Key, 0));
-        Should.Throw<TimeoutException>(() => locker.Lock(Key, TimeSpan.Zero));
+        Should.Throw<TimeoutException>(() => { using var unexpected = locker.Lock(Key, 0); });
+        Should.Throw<TimeoutException>(() => { using var unexpected = locker.Lock(Key, TimeSpan.Zero); });
 
         // The failed attempts must not leave interested-party references behind: once the holder releases,
         // the entry must be removed and the key must be immediately lockable again.
@@ -110,7 +110,7 @@ public class KeyLockerTests
 
         using var cts = new CancellationTokenSource();
         cts.Cancel();
-        Should.Throw<OperationCanceledException>(() => locker.Lock(Key, cts.Token));
+        Should.Throw<OperationCanceledException>(() => { using var unexpected = locker.Lock(Key, cts.Token); });
 
         holder.Dispose();
         locker.IsLocked(Key).ShouldBeFalse();

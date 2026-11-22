@@ -1,5 +1,5 @@
 using System.Diagnostics.CodeAnalysis;
-using Microsoft.CodeAnalysis;
+using Singulink.CodeAnalysis;
 using Singulink.Threading.Utilities;
 
 namespace Singulink.Threading;

@@ -31,7 +31,7 @@ public class LeafLockTests
 
         using (leafLock.EnterGuard())
         {
-            Should.Throw<LockRecursionException>(() => leafLock.EnterGuard());
+            Should.Throw<LockRecursionException>(() => { using var unexpected = leafLock.EnterGuard(); });
             leafLock.IsHeldByCurrentThread.ShouldBeTrue();
         }
 
@@ -114,7 +114,7 @@ public class LeafLockTests
 
         guard.IsDefault.ShouldBeTrue();
         Should.Throw<InvalidOperationException>(() => guard.IsDisposed);
-        Should.Throw<InvalidOperationException>(guard.Dispose);
+        Should.Throw<InvalidOperationException>(() => guard.Dispose());
     }
 
     [TestMethod]

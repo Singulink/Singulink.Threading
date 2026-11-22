@@ -56,7 +56,7 @@ public class UpgradeableReadGuardTests
         using var guard = rwl.EnterUpgradeableReadGuard();
 
         using (guard.EnterUpgradedWriteGuard())
-            Should.Throw<InvalidOperationException>(() => guard.EnterUpgradedWriteGuard());
+            Should.Throw<InvalidOperationException>(() => { using var unexpected = guard.EnterUpgradedWriteGuard(); });
     }
 
     [TestMethod]
@@ -187,8 +187,8 @@ public class UpgradeableReadGuardTests
         Should.Throw<InvalidOperationException>(() => guard.DowngradeToReadLock());
 
         // Upgrading after downgrading.
-        Should.Throw<InvalidOperationException>(() => guard.EnterUpgradedWriteGuard());
-        Should.Throw<InvalidOperationException>(() => guard.TryEnterUpgradedWriteGuard(0));
+        Should.Throw<InvalidOperationException>(() => { using var unexpected = guard.EnterUpgradedWriteGuard(); });
+        Should.Throw<InvalidOperationException>(() => { using var unexpected = guard.TryEnterUpgradedWriteGuard(0); });
 
         guard.Dispose();
     }
@@ -214,8 +214,8 @@ public class UpgradeableReadGuardTests
         using (var guard = rwl.TryEnterUpgradeableReadGuard(0))
         {
             guard.IsEntered.ShouldBeFalse();
-            Should.Throw<InvalidOperationException>(() => guard.EnterUpgradedWriteGuard());
-            Should.Throw<InvalidOperationException>(() => guard.TryEnterUpgradedWriteGuard(0));
+            Should.Throw<InvalidOperationException>(() => { using var unexpected = guard.EnterUpgradedWriteGuard(); });
+            Should.Throw<InvalidOperationException>(() => { using var unexpected = guard.TryEnterUpgradedWriteGuard(0); });
             Should.Throw<InvalidOperationException>(() => guard.DowngradeToReadLock());
         }
 
@@ -230,8 +230,8 @@ public class UpgradeableReadGuardTests
         var guard = rwl.EnterUpgradeableReadGuard();
         guard.Dispose();
 
-        Should.Throw<ObjectDisposedException>(() => guard.EnterUpgradedWriteGuard());
-        Should.Throw<ObjectDisposedException>(() => guard.TryEnterUpgradedWriteGuard(0));
+        Should.Throw<ObjectDisposedException>(() => { using var unexpected = guard.EnterUpgradedWriteGuard(); });
+        Should.Throw<ObjectDisposedException>(() => { using var unexpected = guard.TryEnterUpgradedWriteGuard(0); });
         Should.Throw<ObjectDisposedException>(() => guard.DowngradeToReadLock());
     }
 }

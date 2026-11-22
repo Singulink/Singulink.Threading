@@ -1,5 +1,5 @@
 using System.Diagnostics.CodeAnalysis;
-using Microsoft.CodeAnalysis;
+using Singulink.CodeAnalysis;
 using Singulink.Threading.Utilities;
 
 namespace Singulink.Threading;
@@ -8,7 +8,7 @@ namespace Singulink.Threading;
 /// Represents a disposable read guard over a <see cref="ReadWriteLock"/>.
 /// </summary>
 /// <remarks>
-/// <para>Guards returned from <c>TryEnter</c> methods may not have entered the lock — check
+/// <para>Guards returned from <c>TryEnter</c> methods may not have entered the lock, so check
 /// <see cref="IsEntered"/> after acquiring. Disposing a guard that did not enter the lock is a safe no-op,
 /// so guards can always be assigned directly to a <see langword="using"/> declaration.</para>
 /// <para>Guards are thread-affine: an entered guard must be disposed on the thread that entered the lock,

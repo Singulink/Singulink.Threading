@@ -1,5 +1,5 @@
 using System.Diagnostics.CodeAnalysis;
-using Microsoft.CodeAnalysis;
+using Singulink.CodeAnalysis;
 using Singulink.Threading.Utilities;
 
 namespace Singulink.Threading;
@@ -11,7 +11,7 @@ namespace Singulink.Threading;
 /// <see cref="DowngradeToReadLock"/>).
 /// </summary>
 /// <remarks>
-/// <para>Guards returned from <c>TryEnter</c> methods may not have entered the lock — check
+/// <para>Guards returned from <c>TryEnter</c> methods may not have entered the lock, so check
 /// <see cref="IsEntered"/> after acquiring. Disposing a guard that did not enter the lock is a safe no-op,
 /// so guards can always be assigned directly to a <see langword="using"/> declaration.</para>
 /// <para>Guards are thread-affine: all operations on an entered guard must be performed on the thread that
@@ -149,7 +149,7 @@ public struct UpgradeableReadGuard : IDisposable
     /// </summary>
     /// <remarks>
     /// Retained for binary compatibility with assemblies compiled against v2.x. Equivalent to calling
-    /// <see cref="EnterUpgradedWriteGuard"/> and abandoning the returned guard — disposal of this guard
+    /// <see cref="EnterUpgradedWriteGuard"/> and abandoning the returned guard: disposal of this guard
     /// releases the write lock.
     /// </remarks>
     /// <exception cref="ObjectDisposedException">The guard has been disposed.</exception>
@@ -164,8 +164,8 @@ public struct UpgradeableReadGuard : IDisposable
 
     /// <summary>
     /// Downgrades the guard to a plain read lock, allowing another thread to enter upgradeable read (or
-    /// write) mode while this thread retains read access. The downgrade is gapless — no other thread can
-    /// enter write mode during the transition — and never blocks. Downgrading is one-way: the guard cannot
+    /// write) mode while this thread retains read access. The downgrade is gapless (no other thread can
+    /// enter write mode during the transition) and never blocks. Downgrading is one-way: the guard cannot
     /// be upgraded afterward, and disposal releases the read lock.
     /// </summary>
     /// <exception cref="ObjectDisposedException">The guard has been disposed.</exception>

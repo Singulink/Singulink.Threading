@@ -15,7 +15,7 @@ namespace Singulink.Threading;
 /// thread, and guards must not be used across <see langword="await"/> boundaries.</para>
 /// <para>Naming convention: <c>Enter…Guard</c> methods return a guard that entered the lock;
 /// <c>TryEnter…Guard</c> methods return a guard that may not have entered the lock (check
-/// <c>IsEntered</c> — disposal of a non-entered guard is a safe no-op, so results can be assigned directly
+/// <c>IsEntered</c>; disposal of a non-entered guard is a safe no-op, so results can be assigned directly
 /// to <see langword="using"/> declarations); methods ending in <c>…Lock</c> operate on the current guard in
 /// place.</para>
 /// </remarks>

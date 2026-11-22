@@ -1,7 +1,11 @@
-<Project Sdk="MSTest.Sdk/4.5.1">
+<Project Sdk="MSTest.Sdk/4.5.3">
   <PropertyGroup>
-    <TargetFramework>net8.0</TargetFramework>
+    <TargetFramework>net10.0</TargetFramework>
   </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Singulink.CodeAnalysis" />
+  </ItemGroup>
 
   <ItemGroup>
     <ProjectReference Include="..\..\Source\Singulink.Threading\Singulink.Threading.csproj" />
