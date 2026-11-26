@@ -2,13 +2,13 @@
   <PropertyGroup>
     <TargetFrameworks>net10.0</TargetFrameworks>
 
-    <Version>3.2.0</Version>
+    <Version>3.2.1</Version>
     <PackageTags>Interlocked, Concurrent, Spin, Async, Key, Lock, Retry, ReaderWriter</PackageTags>
     <Description>Small utility library for assisting with multithreading-related tasks.</Description>
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="Singulink.CodeAnalysis.Analyzers" PrivateAssets="none" />
+    <PackageReference Include="Singulink.CodeAnalysis" />
     <PackageReference Include="Singulink.Enums" />
   </ItemGroup>
 </Project>

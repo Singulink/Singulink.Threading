@@ -23,8 +23,10 @@ namespace Singulink.Threading;
 /// <c>using (guard) { }</c>, disposes a hidden copy and leaves the variable looking undisposed, so a later <c>guard.Dispose()</c> releases a second
 /// time. Use <c>using var guard = await …</c> or <c>using (await …) { }</c>, which dispose the guard itself. A guard kept in a
 /// <see langword="readonly"/> field is copied by every call to <see cref="Dispose"/>, so each call releases again: keep a guard in a local variable
-/// or in a field that is not read-only. The guard is marked <c>[NonCopyable]</c>: the Singulink.CodeAnalysis.Analyzers analyzer, which comes
-/// with this package, reports copies of it (SCA1001).</para>
+/// or in a field that is not read-only.</para>
+/// <para>
+/// The guard is marked <c>[NonCopyable]</c>. This package depends on Singulink.CodeAnalysis, which brings an analyzer that reports copies of the
+/// guard (the SCA1000 rules).</para>
 /// </remarks>
 [NonCopyable]
 public struct AsyncReadGuard : IDisposable

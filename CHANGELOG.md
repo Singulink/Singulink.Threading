@@ -1,5 +1,9 @@
 # Singulink.Threading Version History
 
+## Version 3.2.1
+
+- The package now depends on `Singulink.CodeAnalysis` 1.0.0 instead of bringing `Singulink.CodeAnalysis.Analyzers` 0.7.5 directly. The `[NonCopyable]` attribute on the structs is the public one from `Singulink.CodeAnalysis`, and the analyzer still comes along with no setup
+
 ## Version 3.2
 
 - Now targets .NET 10 and no longer supports .NET 8 and 9, which are out of support; version 3.1 remains the last version for them

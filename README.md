@@ -33,7 +33,7 @@ The package is available on NuGet - simply install the `Singulink.Threading` pac
 
 ## Usage
 
-This library makes use of mutable structs as a low-level performance optimization. These structs are marked `[NonCopyable]` because copying one can lead to misuse. The package brings the [Singulink.CodeAnalysis.Analyzers](https://www.nuget.org/packages/Singulink.CodeAnalysis.Analyzers/) analyzer with it, so copies of these structs in your code get warnings (the `SCA1000` rules) with no setup. If those warnings are new to you, [Why Am I Seeing This?](https://www.singulink.com/Docs/Singulink.CodeAnalysis/articles/start/why-am-i-seeing-this.html) explains them, and [Fixing Common Warnings](https://www.singulink.com/Docs/Singulink.CodeAnalysis/articles/start/fixing-common-warnings.html) shows the usual fixes.
+This library makes use of mutable structs as a low-level performance optimization. These structs are marked `[NonCopyable]` because copying one can lead to misuse. The package depends on [Singulink.CodeAnalysis](https://www.nuget.org/packages/Singulink.CodeAnalysis/), which brings an analyzer that warns about copies of these structs in your code (the `SCA1000` rules) with no setup. If those warnings are new to you, [Why Am I Seeing This?](https://www.singulink.com/Docs/Singulink.CodeAnalysis/articles/start/why-am-i-seeing-this.html) explains them, and [Fixing Common Warnings](https://www.singulink.com/Docs/Singulink.CodeAnalysis/articles/start/fixing-common-warnings.html) shows the usual fixes.
 
 ### Choosing a Lock
 
@@ -251,7 +251,7 @@ AsyncReadWriteLock rwLock = new(AsyncReadWriteLockPreference.Readers);
 
 Dispose a guard through the variable that received it, as `using var guard = await …` and `using (await …) { }` do. Two other patterns dispose a hidden copy instead: `using (guard) { }` over an existing variable, and a `Dispose` call on a guard kept in a `readonly` field. Either way the variable or field still looks undisposed, so a later `Dispose` releases a second time: a write guard throws, and a read guard releases another reader's hold.
 
-The guards are `[NonCopyable]`, so the analyzer described under [Usage](#usage) warns about these copies: an assignment from a variable (`SCA1001`), a `using (guard)` statement (`SCA1003`) and a call through a `readonly` field (`SCA1006`).
+The guards are `[NonCopyable]`, so the analyzer described under [Usage](#usage) warns about these copies. It reports a variable that is used again after its guard was assigned to another variable or taken by a `using (guard)` statement (`SCA1016`, at the later use), and a call through a `readonly` field (`SCA1006`).
 
 Entering and leaving the lock when no wait is needed allocates nothing and costs one interlocked operation each. Code that waited for the lock never continues on the thread that released it. Time limits are measured with a `TimeProvider` that you can pass to the constructor, so tests can control them. There is no upgradeable read mode, no way to turn a write hold into a read hold, and no method that blocks a thread until the lock is entered.
 

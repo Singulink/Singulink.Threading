@@ -972,12 +972,12 @@ public class AsyncReadWriteLockTests
         var rwLock = new AsyncReadWriteLock();
 
         var original = rwLock.TryEnterWriteGuard();
-#pragma warning disable SCA1001 // Copy by assignment: the test disposes copies of a guard on purpose
         var copy = original;
+#pragma warning disable SCA1016 // Use after a hand-off: the test disposes copies of a guard on purpose
         var secondCopy = original;
-#pragma warning restore SCA1001
 
         original.Dispose();
+#pragma warning restore SCA1016
 
         // While the lock is free.
         Should.Throw<SynchronizationLockException>(() => copy.Dispose());
@@ -1009,10 +1009,10 @@ public class AsyncReadWriteLockTests
         var rwLock = new AsyncReadWriteLock();
 
         var original = rwLock.TryEnterWriteGuard();
-#pragma warning disable SCA1001 // Copy by assignment: the test disposes a copy of a guard on purpose
         var copy = original;
-#pragma warning restore SCA1001
+#pragma warning disable SCA1016 // Use after a hand-off: the test disposes a copy of a guard on purpose
         original.Dispose();
+#pragma warning restore SCA1016
 
         var reader = rwLock.TryEnterReadGuard();
         Should.Throw<SynchronizationLockException>(() => copy.Dispose());
@@ -1028,11 +1028,11 @@ public class AsyncReadWriteLockTests
         var rwLock = new AsyncReadWriteLock();
 
         var original = rwLock.TryEnterReadGuard();
-#pragma warning disable SCA1001 // Copy by assignment: the test disposes copies of a guard on purpose
         var copy = original;
+#pragma warning disable SCA1016 // Use after a hand-off: the test disposes copies of a guard on purpose
         var secondCopy = original;
-#pragma warning restore SCA1001
         original.Dispose();
+#pragma warning restore SCA1016
 
         // While the lock is free.
         Should.Throw<SynchronizationLockException>(() => copy.Dispose());
@@ -1055,10 +1055,10 @@ public class AsyncReadWriteLockTests
 
         var other = rwLock.TryEnterReadGuard();
         var original = rwLock.TryEnterReadGuard();
-#pragma warning disable SCA1001 // Copy by assignment: the test disposes a copy of a guard on purpose
         var copy = original;
-#pragma warning restore SCA1001
+#pragma warning disable SCA1016 // Use after a hand-off: the test disposes a copy of a guard on purpose
         original.Dispose();
+#pragma warning restore SCA1016
 
         // This is the misuse that a read guard cannot detect: nothing tells the second release of one hold from the release of the other.
         copy.Dispose();
@@ -1098,13 +1098,13 @@ public class AsyncReadWriteLockTests
 
         var readGuard = rwLock.TryEnterReadGuard();
         var writeGuard = rwLock.TryEnterWriteGuard();
-#pragma warning disable SCA1001 // Copy by assignment: the test disposes copies of guards on purpose
         var readCopy = readGuard;
         var writeCopy = writeGuard;
-#pragma warning restore SCA1001
 
+#pragma warning disable SCA1016 // Use after a hand-off: the test disposes copies of guards on purpose
         readGuard.Dispose();
         writeGuard.Dispose();
+#pragma warning restore SCA1016
         readCopy.Dispose();
         writeCopy.Dispose();
         rwLock.IsHeldForWrite.ShouldBeTrue();
